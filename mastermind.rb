@@ -20,12 +20,12 @@ module Secret
         end
         
         # correct colors?
-        choices_are_valid = guess.reduce(true) do |result, element|
+        colors_are_valid = guess.reduce(true) do |result, element|
             break unless result
             result = CHOICES.include?(element)
         end
 
-        unless choices_are_valid
+        unless colors_are_valid
             p guess
             puts "Please choose only the following colors: #{CHOICES}"
             return false
@@ -163,7 +163,3 @@ class Game
         end
     end
 end
-
-game = Game.new
-game.play_turn
-game.play_turn
