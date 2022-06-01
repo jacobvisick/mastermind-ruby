@@ -13,14 +13,15 @@ module Secret
         end
 
         # correct length?
-        if guess.length != 4 then
+        unless guess.length == 4 then
             p guess
             puts "Guess 4 choices"
             return false
         end
         
         # correct colors?
-        choices_are_valid = guess.reduce do |result, element|
+        choices_are_valid = guess.reduce(true) do |result, element|
+            break unless result
             result = CHOICES.include?(element)
         end
 
@@ -39,6 +40,7 @@ module Secret
     end
 
     def get_colorized_code(code)
+
         color_hash = { "red" => "\e[41m   \e[0m",
                  "green" => "\e[42m   \e[0m",
                  "yellow" =>  "\e[43m   \e[0m",
