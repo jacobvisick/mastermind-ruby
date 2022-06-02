@@ -15,7 +15,7 @@ module Secret
         # correct length?
         unless guess.length == 4 then
             p guess
-            puts "Guess 4 choices"
+            puts "Please guess exactly 4 choices"
             return false
         end
         
@@ -39,6 +39,55 @@ module Secret
         guess = guess.downcase.gsub(/[^a-z ]/i, "").split(" ")
     end
 
+end
+
+module Display
+
+    CORRECT = "√"
+    WRONG_LOCATION = "•"
+    INCORRECT = "x"
+
+    INSTRUCTIONS = "Welcome to mastermind!\n" \
+                   "In this game, you will have twelve turns to guess the secret code.\n" \
+                   "The code is 4 colors long. After each guess, you will receive a hint.\n" \
+                   "The hints will be: \n" \
+                   "    #{CORRECT} : Correct color and location\n" \
+                   "    #{WRONG_LOCATION} : Correct color, but wrong location\n" \
+                   "    #{INCORRECT} : Wrong color OR you guessed more of this color\n" \
+                   "        than there is in the code.\n\n" \
+                   "Your choices are: \e[41m red \e[0m, \e[42m green \e[0m, \e[43m yellow \e[0m, " \
+                   "\e[44m blue \e[0m, \e[45m violet \e[0m, or \e[47m\e[30m white \e[0m\e[0m" \
+                   "\n\nNow, please eneter your guess below."
+
+    SCREEN = [
+        "\n", #turn 1
+        "\n", #turn 2
+        "\n", #turn 3
+        "\n", #turn 4
+        "\n", #turn 5
+        "\n", #turn 6
+        "\n", #turn 7
+        "\n", #turn 8
+        "\n", #turn 9
+        "\n", #turn 10
+        "\n", #turn 11
+        "\n", #turn 12
+        "\n", #3 line buffer
+        "\n", 
+        "\n",
+        INSTRUCTIONS,
+        "\n"
+    ]
+    def get_turn_output(guess, hints, turn_number)
+        output = ""
+        output += get_colorized_code(guess)
+        output += " "
+        output += hints
+        output += " [#{turn_number}]"
+        output += "\n"
+        output
+    end
+
     def get_colorized_code(code)
 
         color_hash = { "red" => "\e[41m   \e[0m",
@@ -56,19 +105,17 @@ module Secret
         output
     end
 
-
-    def get_turn_output(guess, hints)
-        output = ""
-        output += get_colorized_code(guess)
-        output += " "
-        output += hints
-        output += "\n"
-        output
+    def new_page
+        system("clear")
     end
+
 end
 
 class Mastermind
     include Secret
+    
+    # Remove when not testing
+    include Display
 
     def initialize
         @secret = generate_secret
@@ -87,6 +134,9 @@ class Mastermind
         output = output[0...-1] + "]"
     end
 
+    def is_game_won?
+        @hints == [CORRECT, CORRECT, CORRECT, CORRECT]
+    end
 
     private
     def generate_secret
@@ -96,28 +146,50 @@ class Mastermind
     end
 
     def check_guess(guess)
-        guess.each_with_index do |element, index|
-            # first check if right color & index
-            if @secret[index] == element then 
-                @hints[index] = CORRECT 
-            # then check if right color at all
-            elsif @secret.include? element then 
-                # TODO: only include this marker
-                # in the correct quantity
-                @hints[index] = WRONG_LOCATION 
-            else
-                # otherwise it's wrong
-                @hints[index] = INCORRECT
-            end
-        end
+        hinted_color_count = Hash.new(0)
+        @hints = Array.new(4)
+
+        # update @hints with correct locations first
+        hinted_color_count = check_correct(guess, hinted_color_count)
+        # update @hints with wrong locations after we know how many are correct
+        hinted_color_count = check_wrong_location(guess, hinted_color_count)
+        # update @hints with incorrect marker after
+        @hints = @hints.map { |hint| hint ? hint : INCORRECT }
 
         @hints
     end
+
+    def check_correct(guess, hinted_color_count)
+        guess.each_with_index do |element, index|
+            if @secret[index] == element then
+                @hints[index] = CORRECT
+                hinted_color_count[element] += 1
+            end
+        end
+
+        hinted_color_count
+    end
+
+    def check_wrong_location(guess, hinted_color_count)
+        guess.each_with_index do |element, index|
+            next if @hints[index]
+            if @secret.include? element then
+                if hinted_color_count[element] < @secret.count(element) then
+                    @hints[index] = WRONG_LOCATION
+                    hinted_color_count[element] += 1
+                end
+            end
+        end
+
+        hinted_color_count
+    end
+
 
 end
 
 class Guesser
     include Secret
+    include Display
 
     def initialize
         
@@ -148,18 +220,55 @@ class Game
     # - Move all of the display magic into its own module and let
     #   the Guesser/Mastermind classes just handle data/logic
 
+    include Display
+
     def initialize
         @history = []
         @mastermind = Mastermind.new
         @guesser = Guesser.new
+        @screen = SCREEN.map(&:clone)
+
+        puts @screen
     end
 
+    def start_game
+        guessed_correctly = false
+
+        while @history.length <= 12
+            play_turn
+            update_screen
+            guessed_correctly = @mastermind.is_game_won?
+            break if guessed_correctly
+        end
+
+        puts "Game over"
+        guessed_correctly ? game_win : game_lose
+    end
+
+    private
     def play_turn
         guess = @guesser.ask_for_guess
         hints = @mastermind.get_hints(guess)
-        @history.push(@mastermind.get_turn_output(guess, hints))
-        @history.each do |turn|
-            print turn
+        @history.push(@mastermind.get_turn_output(guess, hints, @history.length + 1))
+        @history.each_with_index do |turn, index|
+            @screen[index] = turn
         end
     end
+
+    def update_screen
+        system('clear')
+        puts @screen
+    end
+
+    def game_win
+        puts "\e[32mYou guessed correctly!\e[0m"
+    end
+    
+    def game_lose
+        puts "\e[31mSorry, you didn't guess in time.\e[0m"
+    end
 end
+
+game = Game.new
+game.start_game
+bgyy
