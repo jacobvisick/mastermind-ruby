@@ -210,15 +210,20 @@ class Guesser
 end
 
 class Game
+    #
     # This is mostly just for control flow during testing
     # Much of this will change when Guesser/Mastermind are
     # fleshed out
     #
     # TODO:
-    # - flush terminal after each turn so that each turn is played
-    #   at the bottom and guess history just builds downward from top
-    # - Move all of the display magic into its own module and let
-    #   the Guesser/Mastermind classes just handle data/logic
+    # - Use Dislay to resize terminal to just the right dimensions
+    # - Use Display to handle all "puts"
+    # - Include the error messages or game results in @screen array
+    #   by reserving lines in @screen for them
+    #   - We can do this by moving ALL "puts" to Display and using
+    #     error methods / game over methods to insert messages into
+    #     the right location in the array
+    #
 
     include Display
 
@@ -241,7 +246,6 @@ class Game
             break if guessed_correctly
         end
 
-        puts "Game over"
         guessed_correctly ? game_win : game_lose
     end
 
@@ -271,4 +275,3 @@ end
 
 game = Game.new
 game.start_game
-bgyy
