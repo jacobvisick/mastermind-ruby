@@ -38,6 +38,7 @@ module Secret
     def format_guess(guess)
         guess = guess.downcase.gsub(/[^a-z ]/i, "").split(" ")
         exit if guess[0] == 'exit'
+        guess
     end
 
 end
@@ -267,7 +268,7 @@ class Game
     end
 
     def game_win
-        @screen[-1] = "\e[32mYou guessed correctly in #{@history.length + 1} turns!\e[0m"
+        @screen[-1] = "\e[32mYou guessed correctly in #{@history.length} turns!\e[0m"
         update_screen
     end
     
