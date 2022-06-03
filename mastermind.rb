@@ -37,6 +37,7 @@ module Secret
 
     def format_guess(guess)
         guess = guess.downcase.gsub(/[^a-z ]/i, "").split(" ")
+        exit if guess[0] == 'exit'
     end
 
 end
@@ -233,13 +234,14 @@ class Game
         @guesser = Guesser.new
         @screen = SCREEN.map(&:clone)
 
+        system("printf '\e[8;30;90t'")
         puts @screen
     end
 
     def start_game
         guessed_correctly = false
 
-        while @history.length <= 12
+        while @history.length < 12
             play_turn
             update_screen
             guessed_correctly = @mastermind.is_game_won?
@@ -265,11 +267,13 @@ class Game
     end
 
     def game_win
-        puts "\e[32mYou guessed correctly!\e[0m"
+        @screen[-1] = "\e[32mYou guessed correctly in #{@history.length + 1} turns!\e[0m"
+        update_screen
     end
     
     def game_lose
-        puts "\e[31mSorry, you didn't guess in time.\e[0m"
+        @screen[-1] = "\e[31mSorry, you didn't guess in time.\e[0m"
+        update_screen
     end
 end
 
