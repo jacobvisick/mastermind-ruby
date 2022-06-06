@@ -41,6 +41,13 @@ module Secret
         guess
     end
 
+    def generate_code
+        secret = []
+        4.times { secret.push(CHOICES[rand(6)]) }
+        secret
+    end
+
+
 end
 
 module Display
@@ -91,7 +98,6 @@ module Display
     end
 
     def get_colorized_code(code)
-
         color_hash = { "red" => "\e[41m   \e[0m",
                  "green" => "\e[42m   \e[0m",
                  "yellow" =>  "\e[43m   \e[0m",
@@ -99,16 +105,27 @@ module Display
                  "violet" =>  "\e[45m   \e[0m",
                  "white" =>  "\e[47m   \e[0m" }
 
-        output = ""
+        colorized_code = ""
         code.each do |color|
-            output += color_hash["#{color}"]
+            colorized_code += color_hash["#{color}"]
         end
 
-        output
+        colorized_code
     end
 
-    def new_page
+    def resize_terminal
+        system("printf '\e[8;30;90t'")
+    end
+
+    def show_message(message, screen)
+        screen[-1] = message
+        puts screen
+        screen
+    end
+
+    def update_screen(screen)
         system("clear")
+        puts screen
     end
 
 end
@@ -120,7 +137,7 @@ class Mastermind
     include Display
 
     def initialize
-        @secret = generate_secret
+        @secret = generate_code
         @hints = Array.new(4)
         @history = []
 
@@ -141,12 +158,6 @@ class Mastermind
     end
 
     private
-    def generate_secret
-        secret = []
-        4.times { secret.push(CHOICES[rand(6)]) }
-        secret
-    end
-
     def check_guess(guess)
         hinted_color_count = Hash.new(0)
         @hints = Array.new(4)
@@ -191,7 +202,6 @@ end
 
 class Guesser
     include Secret
-    include Display
 
     def initialize
         
@@ -212,21 +222,6 @@ class Guesser
 end
 
 class Game
-    #
-    # This is mostly just for control flow during testing
-    # Much of this will change when Guesser/Mastermind are
-    # fleshed out
-    #
-    # TODO:
-    # - Use Dislay to resize terminal to just the right dimensions
-    # - Use Display to handle all "puts"
-    # - Include the error messages or game results in @screen array
-    #   by reserving lines in @screen for them
-    #   - We can do this by moving ALL "puts" to Display and using
-    #     error methods / game over methods to insert messages into
-    #     the right location in the array
-    #
-
     include Display
 
     def initialize
@@ -235,8 +230,8 @@ class Game
         @guesser = Guesser.new
         @screen = SCREEN.map(&:clone)
 
-        system("printf '\e[8;30;90t'")
-        puts @screen
+        resize_terminal
+        update_screen(@screen)
     end
 
     def start_game
@@ -244,7 +239,7 @@ class Game
 
         while @history.length < 12
             play_turn
-            update_screen
+            update_screen(@screen)
             guessed_correctly = @mastermind.is_game_won?
             break if guessed_correctly
         end
@@ -262,19 +257,12 @@ class Game
         end
     end
 
-    def update_screen
-        system('clear')
-        puts @screen
-    end
-
     def game_win
-        @screen[-1] = "\e[32mYou guessed correctly in #{@history.length} turns!\e[0m"
-        update_screen
+        show_message("\e[32mYou guessed correctly in #{@history.length} turns!\e[0m", @screen)
     end
     
     def game_lose
-        @screen[-1] = "\e[31mSorry, you didn't guess in time.\e[0m"
-        update_screen
+        show_message("\e[31mSorry, you didn't guess in time.\e[0m", @screen)
     end
 end
 
