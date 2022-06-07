@@ -132,14 +132,12 @@ end
 
 class Mastermind
     include Secret
-    
-    # Remove when not testing
-    include Display
 
-    def initialize
+    def initialize(true_if_human)
         @secret = generate_code
         @hints = Array.new(4)
         @history = []
+        @is_human = true_if_human
 
         # TODO: REMOVE WHEN NOT TESTING
         puts "Secret code: " + get_colorized_code(@secret)
@@ -203,17 +201,17 @@ end
 class Guesser
     include Secret
 
-    def initialize
-        
+    def initialize(true_if_human)
+        @is_human = true_if_human
     end
     
-    def ask_for_guess
-        puts "Guess? Valid choices are: #{CHOICES}"
+    def guess_as_player
+        puts "Valid choices are: #{CHOICES}"
         guess = format_guess(gets.chomp)
 
         unless is_guess_valid?(guess)
             puts "Invalid response. Try again."
-            guess = ask_for_guess
+            guess = guess_as_player
         end
 
         guess
@@ -225,13 +223,23 @@ class Game
     include Display
 
     def initialize
-        @history = []
-        @mastermind = Mastermind.new
-        @guesser = Guesser.new
-        @screen = SCREEN.map(&:clone)
-
         resize_terminal
+        team = get_team
+
+        @history = []
+        @mastermind = Mastermind.new(team == "mastermind")
+        @guesser = Guesser.new(team == "guesser")
+        @screen = SCREEN.map(&:clone)
         update_screen(@screen)
+    end
+
+    def get_team
+        puts "Would you like to play as the Mastermind or the Guesser?"
+        team = gets.chomp.downcase.gsub(/[^a-z ]/i, "")
+
+        team = get_team unless team == "mastermind" || team == "guesser"
+
+        team
     end
 
     def start_game
@@ -249,7 +257,7 @@ class Game
 
     private
     def play_turn
-        guess = @guesser.ask_for_guess
+        guess = @guesser.guess_as_player
         hints = @mastermind.get_hints(guess)
         @history.push(@mastermind.get_turn_output(guess, hints, @history.length + 1))
         @history.each_with_index do |turn, index|
