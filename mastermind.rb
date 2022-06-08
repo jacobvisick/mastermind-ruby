@@ -163,8 +163,10 @@ class Mastermind
     private
     def get_user_code
         puts "Please enter a four part code."
-        puts "Choose from the following colors:"
-        puts CHOICES
+        puts "Your choices are: \e[41m red \e[0m, \e[42m green \e[0m, \e[43m yellow \e[0m, " \
+            "\e[44m blue \e[0m, \e[45m violet \e[0m, or \e[47m\e[30m white \e[0m\e[0m" \
+            "\n\nNow, please eneter your guess below."
+        puts "Remember, you can repeat colors in the code if you like."
         code = format_code(gets.chomp)
 
         unless is_code_valid?(code)
@@ -241,8 +243,7 @@ class Guesser
                           .delete("]")
                           .split("")
 
-        hash = { guess: guess, hint: hint_array }
-        @guess_history.push(hash)
+        @guess_history.push({ guess: guess, hint: hint_array })
     end
     
     private
@@ -263,7 +264,32 @@ class Guesser
             generate_code
         else
             #create a guess from hints
-            generate_code
+            last_guess = @guess_history[-1][:guess]
+            last_hints = @guess_history[-1][:hint]
+            next_guess = Array.new(4)
+            valid_colors = []
+
+            last_hints.each_with_index do |hint, index|
+                if hint == CORRECT then
+                    next_guess[index] = last_guess[index]
+                elsif hint == WRONG_LOCATION then
+                    valid_colors.push(last_guess[index])
+                end
+            end
+
+            next_guess = next_guess.map do |color|
+                if color == nil
+                    if valid_colors.length == 0 then
+                        color = CHOICES[rand(CHOICES.length)]
+                    else
+                        color = valid_colors.shuffle.pop
+                    end
+                else
+                    color
+                end
+            end
+
+            next_guess
         end
     end
 
@@ -329,4 +355,4 @@ class Game
 end
 
 game = Game.new
-game.start_game
+game.play
