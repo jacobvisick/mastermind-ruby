@@ -156,6 +156,10 @@ class Mastermind
         @hints == [CORRECT, CORRECT, CORRECT, CORRECT]
     end
 
+    def is_human?
+        @is_human
+    end
+
     private
     def get_user_code
         puts "Please enter a four part code."
@@ -226,14 +230,19 @@ class Guesser
         @is_human ? guess_as_player : guess_as_computer
     end
 
+    def is_human?
+        @is_human
+    end
+
     def give_computer_hints(guess, hints)
-        #require 'pry-byebug'; binding.pry
         hint_array = hints.delete(" ")
                           .delete("|")
                           .delete("[")
                           .delete("]")
                           .split("")
 
+        hash = { guess: guess, hint: hint_array }
+        @guess_history.push(hash)
     end
     
     private
@@ -283,12 +292,8 @@ class Game
         team
     end
 
-    def start_game
-        @team == "guesser" ? play_as_guesser : play_as_guesser # TODO!!
-    end
-
-    private
-    def play_as_guesser
+    
+    def play
         guessed_correctly = false
 
         while @history.length < 12
@@ -301,6 +306,7 @@ class Game
         guessed_correctly ? game_win : game_lose
     end
 
+    private
     def play_turn
         guess = @guesser.guess
 
