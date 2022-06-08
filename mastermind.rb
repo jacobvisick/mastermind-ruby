@@ -5,8 +5,8 @@ module Secret
     WRONG_LOCATION = "•"
     INCORRECT = "x"
 
-    def is_guess_valid?(guess)
-        # don't use format_guess() first
+    def is_code_valid?(guess)
+        # don't use format_code() first
         # if it wasn't formatted, then it isn't valid
         unless guess.is_a? Array
             return false
@@ -35,10 +35,10 @@ module Secret
         return true
     end
 
-    def format_guess(guess)
-        guess = guess.downcase.gsub(/[^a-z ]/i, "").split(" ")
-        exit if guess[0] == 'exit'
-        guess
+    def format_code(code)
+        code = code.downcase.gsub(/[^a-z ]/i, "").split(" ")
+        exit if code[0] == 'exit'
+        code
     end
 
     def generate_code
@@ -132,12 +132,13 @@ end
 
 class Mastermind
     include Secret
+    include Display
 
     def initialize(true_if_human)
-        @secret = generate_code
         @hints = Array.new(4)
         @history = []
         @is_human = true_if_human
+        true_if_human ? @secret = get_user_code : @secret = generate_code
 
         # TODO: REMOVE WHEN NOT TESTING
         puts "Secret code: " + get_colorized_code(@secret)
@@ -156,6 +157,20 @@ class Mastermind
     end
 
     private
+    def get_user_code
+        puts "Please enter a four part code."
+        puts "Choose from the following colors:"
+        puts CHOICES
+        code = format_code(gets.chomp)
+
+        unless is_code_valid?(code)
+            puts "Invalid response. Try again."
+            code = get_user_code
+        end
+
+        @secret = code
+    end
+
     def check_guess(guess)
         hinted_color_count = Hash.new(0)
         @hints = Array.new(4)
@@ -207,9 +222,9 @@ class Guesser
     
     def guess_as_player
         puts "Valid choices are: #{CHOICES}"
-        guess = format_guess(gets.chomp)
+        guess = format_code(gets.chomp)
 
-        unless is_guess_valid?(guess)
+        unless is_code_valid?(guess)
             puts "Invalid response. Try again."
             guess = guess_as_player
         end
@@ -224,11 +239,11 @@ class Game
 
     def initialize
         resize_terminal
-        team = get_team
+        @team = get_team
 
         @history = []
-        @mastermind = Mastermind.new(team == "mastermind")
-        @guesser = Guesser.new(team == "guesser")
+        @mastermind = Mastermind.new(@team == "mastermind")
+        @guesser = Guesser.new(@team == "guesser")
         @screen = SCREEN.map(&:clone)
         update_screen(@screen)
     end
@@ -243,6 +258,11 @@ class Game
     end
 
     def start_game
+        @team == "guesser" ? play_as_guesser : play_as_mastermind
+    end
+
+    private
+    def play_as_guesser
         guessed_correctly = false
 
         while @history.length < 12
@@ -255,7 +275,6 @@ class Game
         guessed_correctly ? game_win : game_lose
     end
 
-    private
     def play_turn
         guess = @guesser.guess_as_player
         hints = @mastermind.get_hints(guess)
