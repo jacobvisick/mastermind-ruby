@@ -218,8 +218,25 @@ class Guesser
 
     def initialize(true_if_human)
         @is_human = true_if_human
+        @guess_history = []
+    end
+
+    public
+    def guess
+        @is_human ? guess_as_player : guess_as_computer
+    end
+
+    def give_computer_hints(guess, hints)
+        #require 'pry-byebug'; binding.pry
+        hint_array = hints.delete(" ")
+                          .delete("|")
+                          .delete("[")
+                          .delete("]")
+                          .split("")
+
     end
     
+    private
     def guess_as_player
         puts "Valid choices are: #{CHOICES}"
         guess = format_code(gets.chomp)
@@ -230,6 +247,15 @@ class Guesser
         end
 
         guess
+    end
+
+    def guess_as_computer
+        if @guess_history.length == 0
+            generate_code
+        else
+            #create a guess from hints
+            generate_code
+        end
     end
 
 end
@@ -258,7 +284,7 @@ class Game
     end
 
     def start_game
-        @team == "guesser" ? play_as_guesser : play_as_mastermind
+        @team == "guesser" ? play_as_guesser : play_as_guesser # TODO!!
     end
 
     private
@@ -276,12 +302,15 @@ class Game
     end
 
     def play_turn
-        guess = @guesser.guess_as_player
+        guess = @guesser.guess
+
         hints = @mastermind.get_hints(guess)
         @history.push(@mastermind.get_turn_output(guess, hints, @history.length + 1))
         @history.each_with_index do |turn, index|
             @screen[index] = turn
         end
+
+        @guesser.give_computer_hints(guess, hints) if @team == "mastermind"
     end
 
     def game_win
